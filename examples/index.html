@@ -4,6 +4,8 @@
   <meta charset="utf-8" />
   <title>GaiaSwitch Demo</title>
   <meta name="description" content="Demo app for gaia-switch" />
+  <link rel="stylesheet" type="text/css" href="../bower_components/gaia-theme/base.css">
+  <link rel="stylesheet" type="text/css" href="../bower_components/gaia-theme/style.css">
   <style type="text/css">
     html,
     body {
@@ -33,6 +35,34 @@
       flex: 1;
       padding: 2rem 0;
     }
+    @keyframes check {
+      0% {
+        transform: translateX(100%);
+        //background: var(--highlight-color, #000);
+      }
+      70% {
+        transform: translateX(0px);
+        background: var(--highlight-color, #000);
+      }
+      100% {
+        transform: translateX(0px);
+        background: var(--color-brand-alpha);
+      }
+    }
+    @keyframes uncheck {
+      0% {
+        transform: translateX(0px);
+        background: var(--color-brand-alpha)
+      }
+      30% {
+        transform: translateX(0px);
+        background: var(--highlight-color, #000);
+      }
+      100% {
+        transform: translateX(-100%);
+        background: var(--highlight-color, #000);
+      }
+    }
   </style>
   <script>
     window.packagesBaseUrl = '../bower_components/';
@@ -41,7 +71,7 @@
   <script src="../bower_components/gaia-component-utils/index.js"></script>
   <script src="../script.js"></script>
 </head>
-<body role="application">
+<body role="application" class="theme-settings">
   <section>
     <li>
       <label>This is a label</label>
