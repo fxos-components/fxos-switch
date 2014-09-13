@@ -35,6 +35,18 @@ proto.createdCallback = function() {
 
   shadow.appendChild(tmpl);
   utils.style.call(this, stylesheets);
+
+  // Bind label listeners in the next turn
+  // to make sure that HTML has been parsed.
+  setTimeout(this.bindLabels.bind(this));
+};
+
+proto.bindLabels = function() {
+  if (!this.id) { return; }
+  var fn = this.onClick.bind(this);
+  var selector = 'label[for="' + this.id + '"]';
+  var els = document.querySelectorAll(selector);
+  [].forEach.call(els, function(el) { el.addEventListener('click', fn); });
 };
 
 proto.toggle = function(value) {

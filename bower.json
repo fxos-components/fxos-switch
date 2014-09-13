@@ -15,5 +15,8 @@
   ],
   "dependencies": {
     "gaia-component-utils": "gaia-components/gaia-component-utils#~0.1.0"
+  },
+  "devDependencies": {
+    "gaia-icons": "gaia-components/gaia-icons#~0.5.6"
   }
 }
