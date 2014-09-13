@@ -1,4 +1,3 @@
-
 gaia-switch {
   display: inline-block;
   overflow: hidden;
@@ -36,16 +35,21 @@ gaia-switch {
   width: 100%;
   height: 100%;
   border-radius: 25px;
-  transform: scale(0);
+  transform: translateX(100%);
   background: var(--highlight-color, #000);
-  transition: all 200ms ease;
-  transition-delay: 300ms;
+  /transition: all 200ms ease;
+  /transition-delay: 300ms;
   will-change: transform;
+  animation: uncheck 0.5s linear forwards;
+  animation-delay: 0.2s;
 }
 
 [checked] .track:after {
-  transform: scale(1);
+  /transform: translateX(0px);
+  animation: check 0.5s linear forwards;
+  animation-delay: 0.2s;
 }
+
 
 .handle {
   position: absolute;
