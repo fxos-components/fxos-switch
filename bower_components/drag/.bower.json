@@ -1,0 +1,29 @@
+{
+  "name": "drag",
+  "main": "index.js",
+  "version": "0.2.0",
+  "homepage": "https://github.com/gaia-components/drag",
+  "authors": [
+    "Wilson Page <wilsonpage@me.com>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "evt": "gaia-components/evt#~0.4.0"
+  },
+  "_release": "0.2.0",
+  "_resolution": {
+    "type": "version",
+    "tag": "v0.2.0",
+    "commit": "921f1edfb955acec8a0edb544ccfb7ce44d5d743"
+  },
+  "_source": "git://github.com/gaia-components/drag.git",
+  "_target": "~0.2.0",
+  "_originalSource": "gaia-components/drag"
+}
