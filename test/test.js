@@ -1,8 +1,7 @@
-
+/* jshint maxlen: 100 */
+/*global sinon, assert, suite, setup, teardown, test */
+'use strict';
 suite('gia-switch', function() {
-
-  var GaiaSwitch = window['gaia-switch'];
-
   setup(function() {
     this.sinon = sinon.sandbox.create();
     this.dom = document.createElement('div');
@@ -27,6 +26,14 @@ suite('gia-switch', function() {
     assert.isFalse(this.el.checked);
   });
 
+  test('It toggles `aria-checked` when clicked (accessibility)', function() {
+    this.el.click();
+    assert.equal(this.el.getAttribute('aria-checked'), 'true');
+
+    this.el.click();
+    assert.equal(this.el.getAttribute('aria-checked'), 'false');
+  });
+
   test('It should respond to attribute changes', function() {
     this.el.setAttribute('checked', '');
     assert.isTrue(this.el.checked);
@@ -38,14 +45,14 @@ suite('gia-switch', function() {
   });
 
   test('It positions the handle on the left when unchecked and right when checked', function() {
-    var elLeft = this.el.els.handle.getBoundingClientRect().left
+    var elLeft = this.el.els.handle.getBoundingClientRect().left;
     var handleLeft = this.el.els.handle.getBoundingClientRect().left;
 
     assert.equal(elLeft, handleLeft);
 
     this.el.checked = true;
 
-    var elRight = this.el.els.handle.getBoundingClientRect().right
+    var elRight = this.el.els.handle.getBoundingClientRect().right;
     var handleRight = this.el.els.handle.getBoundingClientRect().right;
 
     assert.equal(elRight, handleRight);
@@ -178,10 +185,43 @@ suite('gia-switch', function() {
     assert.equal(this.el.disabled, true);
   });
 
+  test('It can be aria-disabled via attribute or property', function() {
+    this.el.disabled = true;
+    assert.equal(this.el.getAttribute('aria-disabled'), 'true');
+
+    this.el.disabled = false;
+    assert.isFalse(this.el.hasAttribute('aria-disabled'));
+
+    this.el.disabled = 'foo';
+    assert.isTrue(this.el.hasAttribute('aria-disabled'));
+
+    this.el.setAttribute('disabled', true);
+    assert.equal(this.el.getAttribute('aria-disabled'), 'true');
+  });
+
   test('It applies the initial `disabled` value on creation', function() {
     this.dom.innerHTML = '<gaia-switch disabled></gaia-switch>';
     var el = this.dom.firstElementChild;
     assert.equal(el.disabled, true);
+  });
+
+  test('It applies the initial aria value on creation (accessibility)', function() {
+    this.sinon.useFakeTimers();
+    this.dom.innerHTML = '<gaia-switch disabled></gaia-switch>';
+    this.sinon.clock.tick(50);
+    var el = this.dom.firstElementChild;
+
+    assert.equal(el.getAttribute('role'), 'switch');
+    assert.equal(el.getAttribute('aria-disabled'), 'true');
+    assert.equal(el.getAttribute('aria-checked'), 'false');
+
+    this.dom.innerHTML = '<gaia-switch></gaia-switch>';
+    this.sinon.clock.tick(50);
+    el = this.dom.firstElementChild;
+
+    assert.equal(el.getAttribute('role'), 'switch');
+    assert.isFalse(el.hasAttribute('aria-disabled'));
+    assert.equal(el.getAttribute('aria-checked'), 'false');
   });
 
   test('It ignores clicks when disabled', function() {
@@ -221,14 +261,14 @@ suite('gia-switch', function() {
   }
 
   function touch(el, type, x, y) {
-    var touch = document.createTouch(
+    var touchObj = document.createTouch(
       window,
       el,
       0,
       x || 0,
       y || 0);
 
-    var touchList = document.createTouchList([touch]);
+    var touchList = document.createTouchList([touchObj]);
     var event = document.createEvent('TouchEvent');
 
     event.initTouchEvent(
