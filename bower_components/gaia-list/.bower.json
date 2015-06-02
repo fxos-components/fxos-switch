@@ -1,31 +1,39 @@
 {
   "name": "gaia-list",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "homepage": "https://github.com/gaia-components/gaia-list",
   "authors": [
     "Wilson Page <wilsonpage@me.com>"
   ],
-  "main": "script.js",
+  "main": "gaia-list.js",
   "license": "MIT",
   "ignore": [
     "**/.*",
     "node_modules",
     "bower_components",
     "test",
-    "tests"
+    "tests",
+    "index.html",
+    "package.json",
+    "README.md"
   ],
   "devDependencies": {
-    "gaia-theme": "gaia-components/gaia-theme#dev",
-    "gaia-fonts": "gaia-components/gaia-fonts#~0.2.1",
-    "gaia-icons": "gaia-components/gaia-icons#~0.6.1"
+    "base": "gaia-components/base",
+    "gaia-fonts": "gaia-components/gaia-fonts",
+    "gaia-icons": "gaia-components/gaia-icons",
+    "gaia-switch": "gaia-components/gaia-switch",
+    "gaia-theme": "gaia-components/gaia-theme"
   },
-  "_release": "0.1.1",
+  "dependencies": {
+    "gaia-component": "gaia-components/gaia-component#^0.3.6"
+  },
+  "_release": "0.2.0",
   "_resolution": {
     "type": "version",
-    "tag": "v0.1.1",
-    "commit": "e8e48337b3a1567d95c3a653709c979930b62c3e"
+    "tag": "v0.2.0",
+    "commit": "8f983db41ebacf3e0ba7bdd06bcc48aae7eb8edd"
   },
   "_source": "git://github.com/gaia-components/gaia-list.git",
-  "_target": "~0.1.1",
+  "_target": "*",
   "_originalSource": "gaia-components/gaia-list"
 }
