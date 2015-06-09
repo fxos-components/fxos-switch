@@ -1,13 +1,13 @@
-;(function(define){define(function(require,exports,module){
-'use strict';
-
+/* globals define */
+;(function(define){'use strict';define(function(require,exports,module){
 /**
  * Locals
  */
-
-var textContent = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent');
-var removeAttribute = HTMLElement.prototype.removeAttribute;
-var setAttribute = HTMLElement.prototype.setAttribute;
+var textContent = Object.getOwnPropertyDescriptor(Node.prototype,
+    'textContent');
+var innerHTML = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+var removeAttribute = Element.prototype.removeAttribute;
+var setAttribute = Element.prototype.setAttribute;
 var noop  = function() {};
 
 /**
@@ -20,13 +20,26 @@ var noop  = function() {};
  */
 exports.register = function(name, props) {
   var baseProto = getBaseProto(props.extends);
+  var template = props.template || baseProto.templateString;
+
+  // Components are extensible by default but can be declared
+  // as non extensible as an optimization to avoid
+  // storing the template strings
+  var extensible = props.extensible = props.hasOwnProperty('extensible')?
+    props.extensible : true;
 
   // Clean up
   delete props.extends;
 
   // Pull out CSS that needs to be in the light-dom
-  if (props.template) {
-    var output = processCss(props.template, name);
+  if (template) {
+    // Stores the string to be reprocessed when
+    // a new component extends this one
+    if (extensible && props.template) {
+      props.templateString = props.template;
+    }
+
+    var output = processCss(template, name);
 
     props.template = document.createElement('template');
     props.template.innerHTML = output.template;
@@ -43,7 +56,7 @@ exports.register = function(name, props) {
 
   // Merge base getter/setter attributes with the user's,
   // then define the property descriptors on the prototype.
-  var descriptors = Object.assign(props.attrs || {}, base.descriptors);
+  var descriptors = mixin(props.attrs || {}, base.descriptors);
 
   // Store the orginal descriptors somewhere
   // a little more private and delete the original
@@ -56,7 +69,13 @@ exports.register = function(name, props) {
   Object.defineProperties(proto, descriptors);
 
   // Register the custom-element and return the constructor
-  return document.registerElement(name, { prototype: proto });
+  try {
+    return document.registerElement(name, { prototype: proto });
+  } catch (e) {
+    if (e.name !== 'NotSupportedError') {
+      throw e;
+    }
+  }
 };
 
 var base = {
@@ -148,14 +167,22 @@ var base = {
   descriptors: {
     textContent: {
       set: function(value) {
-        var node = firstChildTextNode(this);
-        if (node) { node.nodeValue = value; }
+        textContent.set.call(this, value);
+        if (this.lightStyle) { this.appendChild(this.lightStyle); }
       },
 
       get: function() {
-        var node = firstChildTextNode(this);
-        return node && node.nodeValue;
+        return textContent.get();
       }
+    },
+
+    innerHTML: {
+      set: function(value) {
+        innerHTML.set.call(this, value);
+        if (this.lightStyle) { this.appendChild(this.lightStyle); }
+      },
+
+      get: innerHTML.get
     }
   }
 };
@@ -172,47 +199,35 @@ var defaultPrototype = createProto(HTMLElement.prototype, base.properties);
  * Returns a suitable prototype based
  * on the object passed.
  *
+ * @private
  * @param  {HTMLElementPrototype|undefined} proto
  * @return {HTMLElementPrototype}
- * @private
  */
 function getBaseProto(proto) {
   if (!proto) { return defaultPrototype; }
   proto = proto.prototype || proto;
-  return !proto.GaiaComponent
-    ? createProto(proto, base.properties)
-    : proto;
+  return !proto.GaiaComponent ?
+    createProto(proto, base.properties) : proto;
 }
 
 /**
  * Extends the given proto and mixes
  * in the given properties.
  *
+ * @private
  * @param  {Object} proto
  * @param  {Object} props
  * @return {Object}
  */
 function createProto(proto, props) {
-  return Object.assign(Object.create(proto), props);
-}
-
-/**
- * Return the first child textNode.
- *
- * @param  {Element} el
- * @return {TextNode}
- */
-function firstChildTextNode(el) {
-  for (var i = 0; i < el.childNodes.length; i++) {
-    var node = el.childNodes[i];
-    if (node && node.nodeType === 3) { return node; }
-  }
+  return mixin(Object.create(proto), props);
 }
 
 /**
  * Detects presence of shadow-dom
  * CSS selectors.
  *
+ * @private
  * @return {Boolean}
  */
 var hasShadowCSS = (function() {
@@ -240,6 +255,7 @@ var regex = {
  * them to work from the <style scoped>
  * injected at the root of the component.
  *
+ * @private
  * @return {String}
  */
 function processCss(template, name) {
@@ -281,14 +297,34 @@ function processCss(template, name) {
  * <style> in the head of the
  * document.
  *
+ * @private
  * @param  {String} css
  */
 function injectGlobalCss(css) {
-  if (!css) return;
+  if (!css) {return;}
   var style = document.createElement('style');
   style.innerHTML = css.trim();
-  document.head.appendChild(style);
+  headReady().then(function() {
+    document.head.appendChild(style);
+  });
 }
+
+
+/**
+ * Resolves a promise once document.head is ready.
+ *
+ * @private
+ */
+function headReady() {
+  return new Promise(function(resolve) {
+    if (document.head) { return resolve(); }
+    window.addEventListener('load', function fn() {
+      window.removeEventListener('load', fn);
+      resolve();
+    });
+  });
+}
+
 
 /**
  * The Gecko platform doesn't yet have
@@ -320,6 +356,7 @@ function injectLightCss(el) {
  *
  *   toCamelCase('foo-bar'); //=> 'fooBar'
  *
+ * @private
  * @param  {Sring} string
  * @return {String}
  */
@@ -358,6 +395,23 @@ function addDirObserver() {
   function onChanged(mutations) {
     document.dispatchEvent(new Event('dirchanged'));
   }
+}
+
+/**
+ * Copy the values of all properties from
+ * source object `target` to a target object `source`.
+ * It will return the target object.
+ *
+ * @private
+ * @param   {Object} target
+ * @param   {Object} source
+ * @returns {Object}
+ */
+function mixin(target, source) {
+  for (var key in source) {
+    target[key] = source[key];
+  }
+  return target;
 }
 
 });})(typeof define=='function'&&define.amd?define

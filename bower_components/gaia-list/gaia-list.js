@@ -1,5 +1,11 @@
+/* global define */
 ;(function(define){'use strict';define(function(require,exports,module){
-/*jshint esnext:true*/
+
+/**
+ * Dependencies
+ */
+
+var component = require('gaia-component');
 
 /**
  * Pointer event abstraction to make
@@ -7,309 +13,296 @@
  *
  * @type {Object}
  */
+/*jshint ignore:start */
 var pointer = [
   { down: 'touchstart', up: 'touchend', move: 'touchmove' },
   { down: 'mousedown', up: 'mouseup', move: 'mousemove' }
 ]['ontouchstart' in window ? 0 : 1];
+/*jshint ignore:end */
 
 /**
- * Detects presence of shadow-dom
- * CSS selectors.
- *
- * @return {Boolean}
- */
-var hasShadowCSS = (function() {
-  try { document.querySelector(':host'); return true; }
-  catch (e) { return false; }
-})();
-
-/**
- * Element prototype, extends from HTMLElement
- *
- * @type {Object}
- */
-var proto = Object.create(HTMLElement.prototype);
-
-/**
- * Called when the element is first created.
- *
- * Here we create the shadow-root and
- * inject our template into it.
- *
- * @private
- */
-proto.createdCallback = function() {
-  this.createShadowRoot().innerHTML = template;
-  this.els = { inner: this.shadowRoot.querySelector('.inner') };
-  this.addEventListener('click', this.onPointerDown.bind(this));
-  this.shadowStyleHack();
-  this.makeAccessible();
-};
-
-proto.makeAccessible = function() {
-  [].forEach.call(this.children, function(el) {
-    el.tabIndex = 0;
-  });
-};
-
-proto.shadowStyleHack = function() {
-  if (hasShadowCSS) { return; }
-  var style = this.shadowRoot.querySelector('style').cloneNode(true);
-  this.appendChild(style);
-};
-
-proto.itemShouldRipple = function(el) {
-  if (scrolling) { return false; }
-  else if (el.classList.contains('ripple')) { return true; }
-  else if (el.classList.contains('no-ripple')) { return false; }
-  else if (this.classList.contains('ripple')){ return true; }
-  else if (this.classList.contains('no-ripple')){ return false; }
-  else if (el.tagName === 'A') { return true; }
-  else { return false; }
-};
-
-proto.onPointerDown = function(e) {
-  var point = e.touches ? e.changedTouches[0] : e;
-  var target = this.getChild(e.target);
-
-  if (!this.itemShouldRipple(target)) { return; }
-
-  var pos = {
-    list: this.getBoundingClientRect(),
-    item: target.getBoundingClientRect()
-  };
-
-  var els = {
-    container: document.createElement('div'),
-    ripple: document.createElement('div')
-  };
-
-  els.container.className = 'ripple-container';
-  els.container.style.left = (pos.item.left - pos.list.left) + 'px';
-  els.container.style.top = (pos.item.top - pos.list.top) + 'px';
-  els.container.style.width = pos.item.width + 'px';
-  els.container.style.height = pos.item.height + 'px';
-
-  var offset = {
-    x: point.clientX - pos.item.left,
-    y: point.clientY - pos.item.top
-  };
-
-  els.ripple.className = 'ripple';
-  els.ripple.style.left = offset.x + 'px';
-  els.ripple.style.top = offset.y + 'px';
-  els.ripple.style.visibility = 'hidden';
-
-  els.container.appendChild(els.ripple);
-  this.els.inner.appendChild(els.container);
-
-  // var reflow = els.ripple.offsetTop;
-  var scale = pos.item.width / 1.2;
-  var duration = 500;
-
-  setTimeout(function() {
-    els.ripple.style.visibility = '';
-    els.ripple.style.transform = 'scale(' + scale + ')';
-    els.ripple.style.transitionDuration = duration  + 'ms';
-    setTimeout(function() {
-      els.ripple.style.transitionDuration = '1000ms';
-      els.ripple.style.opacity = '0';
-      setTimeout(function() {
-        els.container.remove();
-      }, 1000);
-    }, duration);
-  });
-};
-
-proto.getChild = function(el) {
-  return el.parentNode === this ? el : this.getChild(el.parentNode);
-};
-
-var template = `
-<style>
-
-/** Reset
- ---------------------------------------------------------*/
-
-label { background: none; }
-
-/** Host
- ---------------------------------------------------------*/
-
-:host {
-  position: relative;
-
-  display: block;
-  overflow: hidden;
-  font-size: 17px;
-}
-
-/** Children
- ---------------------------------------------------------*/
-
-::content > *:not(style) {
-  position: relative;
-  z-index: 2;
-
-  box-sizing: border-box;
-  display: flex;
-  width: 100%;
-  min-height: 60px;
-  padding: 9px 16px;
-  margin: 0;
-  border: 0;
-  outline: 0;
-
-  font-size: 18px;
-  font-weight: normal;
-  font-style: normal;
-  background: transparent;
-  align-items: center;
-  list-style-type: none;
-
-  color:
-    var(--text-color);
-}
-
-::content > a {
-  cursor: pointer;
-}
-
-/** Titles
- ---------------------------------------------------------*/
-
-::content h1,
-::content h2,
-::content h3,
-::content h4 {
-  font-weight: 400;
-}
-
-/** Layout Helpers
- ---------------------------------------------------------*/
-
-/**
- * [flexbox]
- *
- * A helper attribute to allow users to
- * quickly define content as a flexbox.
+ * Exports
  */
 
-::content [flexbox] {
-  display: flex;
-}
+module.exports = component.register('gaia-list', {
+  extends: HTMLUListElement.prototype,
 
-/**
- * [flex]
- *
- * A helper attribute to allow users to
- * quickly define area as flexible.
- */
+  created: function() {
+    this.setupShadowRoot();
+    this.els = { inner: this.shadowRoot.querySelector('.inner') };
+    this.addEventListener('click', this.onPointerDown);
+    this.makeAccessible();
+  },
 
-::content [flex] {
-  flex: 1;
-}
+  makeAccessible: function() {
+    [].forEach.call(this.children, (el) => { el.tabIndex = 0; });
+  },
 
-/** Border
- ---------------------------------------------------------*/
+  itemShouldRipple: function(el) {
+    if (scrolling) { return false; }
+    else if (el.classList.contains('ripple')) { return true; }
+    else if (el.classList.contains('no-ripple')) { return false; }
+    else if (this.classList.contains('ripple')){ return true; }
+    else if (this.classList.contains('no-ripple')){ return false; }
+    else if (el.tagName === 'A') { return true; }
+    else { return false; }
+  },
 
-::content > *:before {
-  content: '';
-  position: absolute;
-  top: 0px;
-  left: 16px;
-  right: 16px;
-  height: 1px;
+  onPointerDown: function(e) {
+    var point = e.touches ? e.changedTouches[0] : e;
+    var target = this.getChild(e.target);
 
-  background:
-    var(--border-color,
-    var(--background-plus));
-}
+    if (!this.itemShouldRipple(target)) { return; }
 
-::content > :first-child:before {
-  display: none;
-}
+    var pos = {
+      list: this.getBoundingClientRect(),
+      item: target.getBoundingClientRect()
+    };
 
-/** Titles
- ---------------------------------------------------------*/
+    var els = {
+      container: document.createElement('div'),
+      ripple: document.createElement('div')
+    };
 
-::content small,
-::content p {
-  font-size: 0.7em;
-  line-height: 1.35em;
-}
+    requestAnimationFrame(this.ripple.bind(this, point, pos, els));
+  },
 
-/** Icon
- ---------------------------------------------------------*/
+  ripple: function(point, pos, els) {
+    els.container.className = 'ripple-container';
+    els.container.style.left = (pos.item.left - pos.list.left) + 'px';
+    els.container.style.top = (pos.item.top - pos.list.top) + 'px';
+    els.container.style.width = pos.item.width + 'px';
+    els.container.style.height = pos.item.height + 'px';
 
-::content i {
-  display: inline-block;
-  width: 40px;
-}
+    var offset = {
+      x: point.clientX - pos.item.left,
+      y: point.clientY - pos.item.top
+    };
 
-::content i:before {
-  display: block;
-}
+    els.ripple.className = 'ripple';
+    els.ripple.style.left = offset.x + 'px';
+    els.ripple.style.top = offset.y + 'px';
+    els.ripple.style.visibility = 'hidden';
 
-::content > * > i:last-child {
-  width: auto;
-}
+    els.container.appendChild(els.ripple);
+    this.els.inner.appendChild(els.container);
 
-[dir=rtl] ::content i:before {
-  transform: scale(-1, 1);
-}
+    var end = 'transitionend';
+    requestAnimationFrame(function() {
+      els.ripple.style.visibility = '';
+      els.ripple.style.transform = 'scale(' + pos.item.width + ')';
+      els.ripple.style.transitionDuration = '500ms';
 
-/** Divided
- ---------------------------------------------------------*/
+      els.ripple.addEventListener(end, function fn() {
+        els.ripple.removeEventListener(end, fn);
+        els.ripple.style.transitionDuration = '1000ms';
+        els.ripple.style.opacity = '0';
 
-::content .divided {
-  -moz-border-start: solid 1px;
-  -moz-padding-start: 14px;
+        els.ripple.addEventListener(end, function fn() {
+          els.ripple.removeEventListener(end, fn);
+          els.container.remove();
+        });
+      });
+    });
+  },
 
-  border-color:
-    var(--border-color,
-    var(--background-plus));
-}
+  getChild: function(el) {
+    return el && (el.parentNode === this ? el : this.getChild(el.parentNode));
+  },
 
-/** Ripple Container
- ---------------------------------------------------------*/
+  template: `
+    <div class="inner">
+      <content></content>
+    </div>
 
-.ripple-container.ripple-container {
-  box-sizing: content-box;
-  position: absolute;
-  z-index: -1;
-  padding-top: 1px;
-  overflow: hidden;
-}
+    <style>
 
-/** Ripple
- ---------------------------------------------------------*/
+    /** Reset
+     ---------------------------------------------------------*/
 
-.ripple-container > .ripple {
-  background: var(--border-color);
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 2px;
-  height: 2px;
-  margin: -1px;
-  border-radius: 50%;
-  transition-property: transform, opacity;
-  will-change: transform;
-}
+    label { background: none; }
 
-</style>
+    /** Host
+     ---------------------------------------------------------*/
 
-<div class="inner"><content></content></div>`;
+    :host {
+      position: relative;
 
-// If the browser doesn't support shadow-css
-// selectors yet, we update the template
-// to use the shim classes instead.
-if (!hasShadowCSS) {
-  template = template
-    .replace('::content', 'gaia-list', 'g')
-    .replace(':host', 'gaia-list', 'g');
-}
+      display: block;
+      overflow: hidden;
+      font-size: 17px;
+    }
+
+    /** Children
+     ---------------------------------------------------------*/
+
+    ::content > *:not(style) {
+      position: relative;
+      z-index: 2;
+
+      box-sizing: border-box;
+      display: flex;
+      width: 100%;
+      min-height: 60px;
+      padding: 9px 16px;
+      margin: 0;
+      border: 0;
+      outline: 0;
+
+      font-size: 18px;
+      font-weight: normal;
+      font-style: normal;
+      background: transparent;
+      align-items: center;
+      list-style-type: none;
+
+      color:
+        var(--text-color);
+    }
+
+    ::content > a {
+      cursor: pointer;
+    }
+
+    /** Titles
+     ---------------------------------------------------------*/
+
+    ::content h1,
+    ::content h2,
+    ::content h3,
+    ::content h4 {
+      font-weight: 400;
+    }
+
+    /** Layout Helpers
+     ---------------------------------------------------------*/
+
+    /**
+     * [flexbox]
+     *
+     * A helper attribute to allow users to
+     * quickly define content as a flexbox.
+     */
+
+    ::content [flexbox] {
+      display: flex;
+    }
+
+    /**
+     * [flex]
+     *
+     * A helper attribute to allow users to
+     * quickly define area as flexible.
+     */
+
+    ::content [flex] {
+      flex: 1;
+    }
+
+    /** Border
+     ---------------------------------------------------------*/
+
+    ::content > *:before {
+      content: '';
+      position: absolute;
+      top: 0px;
+      left: 16px;
+      right: 16px;
+      height: 1px;
+
+      background:
+        var(--border-color,
+        var(--background-plus));
+    }
+
+    /* Hack: Hide the line before the second element, since the first element is
+     * the <style scoped> element */
+    ::content > :first-child:before,
+    ::content > style:first-child ~ :nth-child(2):before,
+    ::content > gaia-header:first-child ~ :nth-child(2):before,
+    ::content > gaia-sub-header:first-child ~ :nth-child(2):before,
+    ::content > h1:first-child ~ :nth-child(2):before,
+    ::content > h2:first-child ~ :nth-child(2):before,
+    ::content > .borderless:before {
+      display: none;
+    }
+
+    /** Descriptions
+     ---------------------------------------------------------*/
+
+    ::content small,
+    ::content p {
+      font-size: 0.7em;
+      line-height: 1.35em;
+    }
+
+    /** Icon
+     ---------------------------------------------------------*/
+
+    ::content i {
+      display: inline-block;
+      width: 40px;
+    }
+
+    ::content i:before {
+      display: block;
+    }
+
+    ::content > * > i:last-child {
+      width: auto;
+    }
+
+    /**
+     * Reverse the icons when the document is RTL mode
+     */
+
+    :host-context([dir=rtl]) ::content i:before {
+      transform: scale(-1, 1);
+      text-align: end;
+    }
+
+    /** Divided
+     ---------------------------------------------------------*/
+
+    ::content .divided {
+      -moz-border-start: solid 1px;
+      -moz-padding-start: 14px;
+
+      border-color:
+        var(--border-color,
+        var(--background-plus));
+    }
+
+    /** Ripple Container
+     ---------------------------------------------------------*/
+
+    .ripple-container.ripple-container {
+      box-sizing: content-box;
+      position: absolute;
+      z-index: -1;
+      padding-top: 1px;
+      overflow: hidden;
+    }
+
+    /** Ripple
+     ---------------------------------------------------------*/
+
+    .ripple-container > .ripple {
+      background: var(--border-color);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 2px;
+      height: 2px;
+      margin: -1px;
+      border-radius: 50%;
+      transition-property: transform, opacity;
+      will-change: transform;
+    }
+
+    </style>
+  `
+});
 
 var scrolling = false;
 var scrollTimeout;
@@ -321,11 +314,6 @@ addEventListener('scroll', function() {
     scrolling = false;
   }, 100);
 });
-
-// Register and return the constructor
-// and expose `protoype` (bug 1048339)
-module.exports = document.registerElement('gaia-list', { prototype: proto });
-module.exports.proto = proto;
 
 });})(typeof define=='function'&&define.amd?define
 :(function(n,w){'use strict';return typeof module=='object'?function(c){
